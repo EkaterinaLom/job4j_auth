@@ -6,6 +6,5 @@ import java.util.Collection;
 
 public interface PersonRepository extends CrudRepository<Person, Integer> {
 
-    @Override
     Collection<Person> findAll();
 }

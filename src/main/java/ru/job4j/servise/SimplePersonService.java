@@ -1,22 +1,17 @@
 package ru.job4j.servise;
 
-import org.slf4j.LoggerFactory;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.job4j.model.Person;
 import ru.job4j.repository.PersonRepository;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.logging.Logger;
 
 @Service
+@AllArgsConstructor
 public class SimplePersonService implements PersonService {
 
-    private static final Logger LOG = (Logger) LoggerFactory.getLogger(SimplePersonService.class.getName());
     private final PersonRepository persons;
-
-    public SimplePersonService(PersonRepository persons) {
-        this.persons = persons;
-    }
 
     @Override
     public Collection<Person> findAll() {
@@ -30,27 +25,36 @@ public class SimplePersonService implements PersonService {
 
     @Override
     public Optional<Person> save(Person person) {
+        Optional<Person> rsl = Optional.empty();
         try {
-            return Optional.of(persons.save(person));
+            rsl = Optional.of(persons.save(person));
         } catch (Exception e) {
-            LOG.info("Person not save");
+            e.printStackTrace();
         }
-        return Optional.empty();
+        return rsl;
     }
 
     @Override
     public boolean update(Person person) {
-        if (persons.existsById(person.getId())) {
+        boolean updated = false;
+        try {
             persons.save(person);
-            return true;
+            updated = true;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return false;
+        return updated;
     }
 
     @Override
-    public void deleteById(int id) {
-        if (persons.existsById(id)) {
+    public boolean deleteById(int id) {
+        boolean deleted = false;
+        try {
             persons.deleteById(id);
+            deleted = true;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return deleted;
     }
 }

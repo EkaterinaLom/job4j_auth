@@ -1,21 +1,20 @@
 package ru.job4j.controller;
 
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.model.Person;
-import ru.job4j.servise.SimplePersonService;
+import ru.job4j.servise.PersonService;
 import java.util.Collection;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/person")
 public class PersonController {
 
-    private final SimplePersonService persons;
-
-    public PersonController(SimplePersonService persons) {
-        this.persons = persons;
-    }
+    private final PersonService persons;
 
     @GetMapping("/")
     public Collection<Person> findAll() {
@@ -24,28 +23,33 @@ public class PersonController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Person> findById(@PathVariable int id) {
-        var person = this.persons.findById(id);
-        return new ResponseEntity<Person>(
-                person.orElse(new Person()),
-                person.isPresent() ? HttpStatus.OK : HttpStatus.NOT_FOUND
-        );
+        return this.persons.findById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/")
     public ResponseEntity<Person> create(@RequestBody Person person) {
-        return persons.save(person)
+        return this.persons.save(person)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/")
     public ResponseEntity<Void> update(@RequestBody Person person) {
-        return persons.update(person) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+        var updated = persons.update(person);
+        if (updated) {
+            return ResponseEntity.ok().build();
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Person not updated");
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable int id) {
-        persons.deleteById(id);
-        return ResponseEntity.ok().build();
+        var deleted = persons.deleteById(id);
+        if (deleted) {
+            return ResponseEntity.ok().build();
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Person is not deleted");
     }
 }
