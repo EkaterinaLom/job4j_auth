@@ -17,6 +17,7 @@ public class Person {
     @EqualsAndHashCode.Include
     private String login;
     private String password;
+
     public int getId() {
         return id;
     }
