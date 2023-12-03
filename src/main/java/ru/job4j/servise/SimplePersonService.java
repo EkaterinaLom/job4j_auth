@@ -1,11 +1,17 @@
 package ru.job4j.servise;
 
 import lombok.AllArgsConstructor;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import ru.job4j.model.Person;
 import ru.job4j.repository.PersonRepository;
+
 import java.util.Collection;
 import java.util.Optional;
+
+import static java.util.Collections.emptyList;
 
 @Service
 @AllArgsConstructor
@@ -56,5 +62,17 @@ public class SimplePersonService implements PersonService {
             e.printStackTrace();
         }
         return deleted;
+    }
+
+    @Override
+    public Optional<Person> findByLogin(String login) {
+        return persons.findByLogin(login);
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return persons.findByLogin(username)
+                .map(person -> new User(person.getLogin(), person.getPassword(), emptyList()))
+                .orElseThrow(() -> new UsernameNotFoundException(username));
     }
 }

@@ -1,7 +1,8 @@
 package ru.job4j.model;
 
-import jakarta.persistence.*;
 import lombok.Data;
+
+import javax.persistence.*;
 
 @Entity
 @Data
@@ -13,5 +14,13 @@ public class Person {
     private int id;
     private String login;
     private String password;
+
+    @Override
+    public String toString() {
+        return "Person{"
+                + "id=" + id
+                + ", login='" + login + '\''
+                + '}';
+    }
 
 }
