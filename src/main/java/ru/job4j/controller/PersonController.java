@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -14,6 +16,7 @@ import ru.job4j.servise.PersonService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -99,4 +102,18 @@ public class PersonController {
         LOGGER.error(e.getLocalizedMessage());
     }
 
+    @PatchMapping("/{id}/{login}")
+    public ResponseEntity<Person> updatePersonPartially(
+            @PathVariable(value = "id") Integer id,
+            @RequestBody Person personDetails) throws UsernameNotFoundException {
+        var person = persons.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found on :: " + id));
+        validPerson(personDetails);
+        person.setLogin(personDetails.getLogin());
+        final var updatedPerson = persons.update(person);
+        if (updatedPerson) {
+            return ResponseEntity.ok().build();
+        }
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Person not updated");
+    }
 }
