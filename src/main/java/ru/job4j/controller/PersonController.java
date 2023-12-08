@@ -6,17 +6,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.parameters.P;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import ru.job4j.model.Person;
+import ru.job4j.model.PersonDTO;
 import ru.job4j.servise.PersonService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,9 +38,9 @@ public class PersonController {
         }
     }
 
-    private void validPerson(Person person) {
-        if (person.getLogin() == null || person.getPassword() == null) {
-            throw new NullPointerException("Login and password must be not null");
+    private void validPersonLogin(Person person) {
+        if (person.getLogin() == null) {
+            throw new NullPointerException("Login must be not null");
         }
     }
 
@@ -60,17 +59,17 @@ public class PersonController {
 
     @PostMapping("/")
     public ResponseEntity<Person> create(@RequestBody Person person) {
-        validPerson(person);
+        validPersonLogin(person);
         validPassword(person);
         person.setPassword(encoder.encode(person.getPassword()));
         return this.persons.save(person)
                 .map(ResponseEntity::ok)
-                .orElseGet(() -> new ResponseEntity(HttpStatus.CONFLICT));
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.CONFLICT));
     }
 
     @PutMapping("/")
     public ResponseEntity<Void> update(@RequestBody Person person) {
-        validPerson(person);
+        validPersonLogin(person);
         validPassword(person);
         var updated = persons.update(person);
         if (updated) {
@@ -105,11 +104,11 @@ public class PersonController {
     @PatchMapping("/{id}/{login}")
     public ResponseEntity<Person> updatePersonPartially(
             @PathVariable(value = "id") Integer id,
-            @RequestBody Person personDetails) throws UsernameNotFoundException {
+            @RequestBody PersonDTO personDetails) throws UsernameNotFoundException {
         var person = persons.findById(id)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found on :: " + id));
-        validPerson(personDetails);
         person.setLogin(personDetails.getLogin());
+        validPersonLogin(person);
         final var updatedPerson = persons.update(person);
         if (updatedPerson) {
             return ResponseEntity.ok().build();
