@@ -1,24 +1,20 @@
 package ru.job4j.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import ru.job4j.model.Operation;
 import ru.job4j.model.Person;
 import ru.job4j.model.PersonDTO;
 import ru.job4j.servise.PersonService;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import javax.validation.constraints.Positive;
 import java.util.Collection;
-import java.util.HashMap;
 
 @RestController
 @AllArgsConstructor
@@ -28,29 +24,13 @@ public class PersonController {
     private final PersonService persons;
     private final PasswordEncoder encoder;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PersonController.class.getSimpleName());
-
-    private final ObjectMapper objectMapper;
-
-    private void validPassword(Person person) {
-        if (person.getPassword().length() < 5) {
-            throw new IllegalArgumentException(("Invalid password. It`s length must be more than 5 characters."));
-        }
-    }
-
-    private void validPersonLogin(Person person) {
-        if (person.getLogin() == null) {
-            throw new NullPointerException("Login must be not null");
-        }
-    }
-
     @GetMapping("/")
     public Collection<Person> findAll() {
         return this.persons.findAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Person> findById(@PathVariable int id) {
+    public ResponseEntity<Person> findById(@Positive @PathVariable int id) {
         return this.persons.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -58,9 +38,8 @@ public class PersonController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<Person> create(@RequestBody Person person) {
-        validPersonLogin(person);
-        validPassword(person);
+    @Validated(Operation.OnCreate.class)
+    public ResponseEntity<Person> create(@Validated(Operation.OnCreate.class) @RequestBody Person person) {
         person.setPassword(encoder.encode(person.getPassword()));
         return this.persons.save(person)
                 .map(ResponseEntity::ok)
@@ -68,9 +47,8 @@ public class PersonController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<Void> update(@RequestBody Person person) {
-        validPersonLogin(person);
-        validPassword(person);
+    @Validated(Operation.OnUpdate.class)
+    public ResponseEntity<Void> update(@Validated(Operation.OnUpdate.class) @RequestBody Person person) {
         var updated = persons.update(person);
         if (updated) {
             return ResponseEntity.ok().build();
@@ -87,28 +65,14 @@ public class PersonController {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Person is not deleted");
     }
 
-    @ExceptionHandler(value = {IllegalArgumentException.class})
-    public void exceptionHandler(Exception e, HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        response.setStatus(HttpStatus.BAD_REQUEST.value());
-        response.setContentType("application/json");
-        response.getWriter().write(objectMapper.writeValueAsString(new HashMap<>() {
-            {
-                put("message", e.getMessage());
-                put("type", e.getClass());
-            }
-        }));
-        LOGGER.error(e.getLocalizedMessage());
-    }
-
     @PatchMapping("/{id}/{login}")
     public ResponseEntity<Person> updatePersonPartially(
-            @PathVariable(value = "id") Integer id,
-            @RequestBody PersonDTO personDetails) throws UsernameNotFoundException {
+            @Positive @PathVariable(value = "id") Integer id,
+            @Validated(Operation.OnUpdate.class) @RequestBody PersonDTO personDetails)
+            throws UsernameNotFoundException {
         var person = persons.findById(id)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found on :: " + id));
         person.setLogin(personDetails.getLogin());
-        validPersonLogin(person);
         final var updatedPerson = persons.update(person);
         if (updatedPerson) {
             return ResponseEntity.ok().build();
